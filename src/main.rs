@@ -1,14 +1,20 @@
 //let shell = vec!["fn main() {","}"]
 
+use std::fs;
 use std::io;
 use std::io::Write;
+
+pub mod cargo_cmd;
 mod eval;
-use crate::eval::{eval, prepare_ground};
+
+use crate::cargo_cmd::{cargo_add, cargo_new};
+use crate::eval::eval;
 
 enum KeyWords {
     Reset,
     Code,
     Show,
+    Add,
 }
 
 #[derive(Clone)]
@@ -30,10 +36,10 @@ impl Repl {
         self.cursor += 1;
     }
     fn reset(&mut self) {
+        prepare_ground().expect("Error while resetting Repl");
         *self = Self::new();
     }
     fn show(&self) {
-        //cargo_fmt();
         println!("Current Repl Code:\n{}", self.body.clone().join(""));
     }
 }
@@ -60,6 +66,7 @@ fn parse_first_order(repl: &mut Repl, input: String) {
     let cmd = match input {
         "reset" => KeyWords::Reset,
         "show" => KeyWords::Show,
+        cmd if cmd.starts_with("add") => KeyWords::Add,
         _ => KeyWords::Code,
     };
     match cmd {
@@ -71,6 +78,7 @@ fn parse_first_order(repl: &mut Repl, input: String) {
             println!("Repl reseted!")
         }
         KeyWords::Show => repl.show(),
+        KeyWords::Add => cargo_add(input).expect("Error while trying to add dependency"),
     }
 }
 
@@ -83,13 +91,9 @@ fn parse_second_order(repl: &mut Repl, input: &str) {
     }
 }
 
-// cargo cmd
-
-/* fn cargo_fmt() -> Result<(), io::Error> {
-    Command::new("cargo")
-        .arg("fmt")
-        .spawn()?
-        .wait()?;
+// prepare ground
+fn prepare_ground() -> Result<(), io::Error> {
+    fs::remove_dir_all("./rust_repl_bot").unwrap_or_default();
+    cargo_new()?;
     Ok(())
 }
- */
