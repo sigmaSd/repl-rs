@@ -4,6 +4,13 @@ use std::fs;
 use std::io;
 use std::io::Write;
 
+use tuikit::attr::*;
+use tuikit::term::{Term, TermHeight};
+use tuikit::key::Key;
+use tuikit::event::Event;
+use std::cmp::{min, max};
+
+
 pub mod cargo_cmd;
 mod eval;
 
@@ -45,6 +52,46 @@ impl Repl {
 }
 
 fn main() {
+    let term = Term::with_height(TermHeight::Percent(10)).unwrap();
+    let mut repl = Repl::new();
+
+    let mut buffer = String::new();
+    let mut cursor = 0;
+
+    while let Ok(ev) = term.poll_event() {
+        let _ = term.clear();
+        let _ = term.print(0, 0, "press arrow key to move the text, (q) to quit"); 
+
+        let (width, height) = term.term_size().unwrap();
+        match ev {
+            Event::Key(Key::Up) => {
+                let _ = term.clear();
+                let _ = term.print(0, 0, "hello");
+                term.present();
+            }, 
+            Event::Key(Key::Down) => (),
+            Event::Key(Key::Enter) => {
+                parse_first_order(&mut repl, buffer.clone());
+                buffer.clear();
+            },
+            _ => match ev {
+                Event::Key(Key::Char(letter)) => {
+                    buffer.push(letter);
+                    let _ = term.clear();
+                    cursor +=1;
+                    term.set_cursor(0, cursor);
+                    let _ = term.print(0, 0, &buffer);
+                    
+                    term.present();
+                },
+                _ => ()
+            },
+        }
+
+    }
+}
+
+/* fn main() {
     prepare_ground().expect("Error while preparing repl");
 
     let mut repl = Repl::new();
@@ -58,7 +105,7 @@ fn main() {
             .expect("Error while reding stdin");
         parse_first_order(&mut repl, input);
     }
-}
+} */
 
 fn parse_first_order(repl: &mut Repl, input: String) {
     // avoid all kind of bugs by trim()
