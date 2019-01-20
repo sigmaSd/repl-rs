@@ -1,7 +1,7 @@
 # repl-rs
 Rust repl though with caveat ^^
 
-# Keywords
+## Keywords
 **reset** => reset Repl
 
 **show** => show Repl current code
