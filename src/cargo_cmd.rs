@@ -13,10 +13,15 @@ pub fn cargo_run() -> Result<(), io::Error> {
     let out = Command::new("cargo")
         .current_dir("./rust_repl_bot")
         .arg("run")
-        .output()?
-        .stdout;
-    let out = String::from_utf8(out).expect("Invalid input (Not Utf-8)");
-    print!(" {}", out);
+        .output()?;
+
+    let stdout = String::from_utf8(out.stdout).expect("Invalid input (Not Utf-8)");
+    let stderr = String::from_utf8(out.stderr).expect("Invalid input (Not Utf-8)");
+    if stdout.is_empty() {
+        print!("{}", stderr);
+    } else {
+        print!("{}", stdout);
+    }
     Ok(())
 }
 

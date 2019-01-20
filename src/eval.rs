@@ -6,7 +6,7 @@ use crate::cargo_cmd::cargo_run;
 use crate::Repl;
 
 pub fn eval(mut repl: Repl, input: String) -> Result<(), io::Error> {
-    let print_statement = format!("println!(\"{{}}\", {})", input);
+    let print_statement = format!("println!(\"{{}}\", {});", input);
     repl.insert(print_statement);
 
     let current_code: String = repl.body.join("");
