@@ -59,7 +59,7 @@ fn parse_first_order(repl: &mut Repl, input: String) {
         KeyWords::Reset => {
             repl.reset();
             println!("Repl reseted!")
-        },
+        }
     }
 }
 
