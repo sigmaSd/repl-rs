@@ -7,6 +7,7 @@ use crate::eval::{eval, prepare_ground};
 enum KeyWords {
     Reset,
     Code,
+    Show,
 }
 
 #[derive(Clone)]
@@ -18,16 +19,20 @@ pub struct Repl {
 impl Repl {
     fn new() -> Self {
         Self {
-            body: vec!["fn main() {".to_string(), "}".to_string()],
+            body: vec!["fn main() {\n".to_string(), "}".to_string()],
             cursor: 1,
         }
     }
-    fn insert(&mut self, input: String) {
+    fn insert(&mut self, mut input: String) {
+        input.push('\n');
         self.body.insert(self.cursor, input);
         self.cursor += 1;
     }
     fn reset(&mut self) {
         *self = Self::new();
+    }
+    fn show(&self) {
+        println!("Current Repl Code:\n{}", self.body.clone().join(""));
     }
 }
 
@@ -50,6 +55,7 @@ fn parse_first_order(repl: &mut Repl, input: String) {
     let input = input.trim();
     let cmd = match input {
         "reset" => KeyWords::Reset,
+        "show" => KeyWords::Show,
         _ => KeyWords::Code,
     };
     match cmd {
@@ -60,6 +66,7 @@ fn parse_first_order(repl: &mut Repl, input: String) {
             repl.reset();
             println!("Repl reseted!")
         }
+        KeyWords::Show => repl.show(),
     }
 }
 
