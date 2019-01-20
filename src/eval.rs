@@ -39,6 +39,6 @@ fn cargo_run() -> Result<(), io::Error> {
         .output()?
         .stdout;
     let out = String::from_utf8(out).expect("Invalid input (Not Utf-8)");
-    println!("{}", out);
+    println!(">> {}", out);
     Ok(())
 }
