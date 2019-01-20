@@ -24,6 +24,8 @@ pub fn eval(mut repl: Repl, input: String) -> Result<(), io::Error> {
     Ok(())
 }
 
+// cargo cmd
+
 fn cargo_new() -> Result<(), io::Error> {
     Command::new("cargo")
         .args(&["new", "rust_repl_bot"])
@@ -39,6 +41,6 @@ fn cargo_run() -> Result<(), io::Error> {
         .output()?
         .stdout;
     let out = String::from_utf8(out).expect("Invalid input (Not Utf-8)");
-    println!(">> {}", out);
+    print!(" {}", out);
     Ok(())
 }

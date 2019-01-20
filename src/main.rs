@@ -1,6 +1,7 @@
 //let shell = vec!["fn main() {","}"]
 
 use std::io;
+use std::io::Write;
 mod eval;
 use crate::eval::{eval, prepare_ground};
 
@@ -32,6 +33,7 @@ impl Repl {
         *self = Self::new();
     }
     fn show(&self) {
+        //cargo_fmt();
         println!("Current Repl Code:\n{}", self.body.clone().join(""));
     }
 }
@@ -43,6 +45,8 @@ fn main() {
 
     loop {
         let mut input = String::new();
+        print!(">>>");
+        io::stdout().flush().expect("Error while flushing stdout");
         io::stdin()
             .read_line(&mut input)
             .expect("Error while reding stdin");
@@ -78,3 +82,14 @@ fn parse_second_order(repl: &mut Repl, input: &str) {
         eval(repl.clone(), input).expect("Error while evaluating expression");
     }
 }
+
+// cargo cmd
+
+/* fn cargo_fmt() -> Result<(), io::Error> {
+    Command::new("cargo")
+        .arg("fmt")
+        .spawn()?
+        .wait()?;
+    Ok(())
+}
+ */
