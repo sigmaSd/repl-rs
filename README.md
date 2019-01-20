@@ -6,7 +6,12 @@ Rust repl though with caveat ^^
 
 **show** => show Repl current code
 
-**add** *<dep_list>* => add dependencies (requires https://github.com/killercup/cargo-edit)
+**add** *<dep_list>* => add dependencies (requires [cargo-edit](https://github.com/killercup/cargo-edit))
 
 ## Showcase
 <img src="./repl-rs.gif" width="80%" height="60%">
+
+## Plans
+**1-** Use [tuikit](https://github.com/lotabout/tuikit) as TUI
+
+**2-** with **1** done, It would be possible to handle multiline input and cycling through history with arrows keys
