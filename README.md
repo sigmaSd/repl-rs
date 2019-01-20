@@ -2,9 +2,9 @@
 Rust repl though with caveat ^^
 
 ## Keywords
-**reset** => reset Repl
+**reset** => reset repl
 
-**show** => show Repl current code
+**show** => show repl current code
 
 **add** *<dep_list>* => add dependencies (requires [cargo-edit](https://github.com/killercup/cargo-edit))
 
@@ -14,4 +14,4 @@ Rust repl though with caveat ^^
 ## Plans
 **1-** Use [tuikit](https://github.com/lotabout/tuikit) as TUI
 
-**2-** with **1** done, It would be possible to handle multiline input and cycling through history with arrows keys
+**2-** with **1** done, It would be possible to handle multiline input and cycling through history with arrow keys
