@@ -60,18 +60,24 @@ impl Terminal {
             term: Term::with_height(TermHeight::Percent(30)).unwrap(),
             repl: Repl::new(),
             buffer: String::new(),
-            cursor: (0, 0),
+            cursor: (1, 0),
         }
     }
 
     fn run(&mut self) {
         while let Ok(ev) = self.term.poll_event() {
             let _ = self.term.clear();
-            let _ = self
-                .term
-                .print(0, 0, "press arrow key to move the text, (q) to quit");
-
             let (width, height) = self.term.term_size().unwrap();
+            let _ = self.term.print(
+                0,
+                0,
+                &format!(
+                    "{0}Welcome to Rust REPL{0}",
+                    "-".chars().cycle().take(5).collect::<String>()
+                ),
+            );
+            self.term.present();
+
             match ev {
                 Event::Key(Key::Up) => {
                     let _ = self.term.clear();
@@ -81,7 +87,7 @@ impl Terminal {
                 Event::Key(Key::Down) => (),
                 Event::Key(Key::Enter) => {
                     //parse_first_order(&mut repl, self.buffer.clone());
-                    self.cursor = (0, 0);
+                    self.cursor = (1, 0);
                     let _ = self.term.clear();
                     self.term.set_cursor(self.cursor.0, self.cursor.1);
                     self.buffer.clear();
@@ -97,7 +103,7 @@ impl Terminal {
                         let _ = self.term.clear();
                         self.cursor.1 += 1;
                         self.term.set_cursor(self.cursor.0, self.cursor.1);
-                        let _ = self.term.print(0, 0, &self.buffer);
+                        let _ = self.term.print(1, 0, &self.buffer);
 
                         self.term.present();
                     } else {

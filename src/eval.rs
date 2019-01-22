@@ -3,7 +3,7 @@ use crate::Repl;
 use std::io;
 
 pub fn eval(mut repl: Repl, input: String) -> Result<(), io::Error> {
-    let eval_statement = format!("println!(\"{{}}\", {});", input);
+    let eval_statement = format!("println!(\"{{:?}}\", {});", input);
     repl.insert(eval_statement);
 
     let current_code: String = repl.body.join("");
