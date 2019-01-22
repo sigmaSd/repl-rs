@@ -3,6 +3,7 @@ use std::process::Command;
 
 pub fn cargo_new() -> Result<(), io::Error> {
     Command::new("cargo")
+        .current_dir("/tmp")
         .args(&["new", "rust_repl_bot"])
         .spawn()?
         .wait()?;
@@ -11,7 +12,7 @@ pub fn cargo_new() -> Result<(), io::Error> {
 
 pub fn cargo_run() -> Result<(), io::Error> {
     let out = Command::new("cargo")
-        .current_dir("./rust_repl_bot")
+        .current_dir("/tmp/rust_repl_bot")
         .arg("run")
         .output()?;
 
@@ -32,7 +33,7 @@ pub fn cargo_add(add_dep: &str) -> Result<(), io::Error> {
         return Ok(());
     }
     Command::new("cargo")
-        .current_dir("./rust_repl_bot")
+        .current_dir("/tmp/rust_repl_bot")
         .args(&add_dep)
         .spawn()?
         .wait()?;

@@ -93,7 +93,7 @@ fn parse_second_order(repl: &mut Repl, input: &str) {
 
 // prepare ground
 fn prepare_ground() -> Result<(), io::Error> {
-    fs::remove_dir_all("./rust_repl_bot").unwrap_or_default();
+    fs::remove_dir_all("/tmp/rust_repl_bot").unwrap_or_default();
     cargo_new()?;
     Ok(())
 }

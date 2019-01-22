@@ -10,7 +10,7 @@ pub fn eval(mut repl: Repl, input: String) -> Result<(), io::Error> {
     repl.insert(print_statement);
 
     let current_code: String = repl.body.join("");
-    let mut main = File::create("./rust_repl_bot/src/main.rs")?;
+    let mut main = File::create("/tmp/rust_repl_bot/src/main.rs")?;
     write!(main, "{}", current_code)?;
     cargo_run()?;
     Ok(())
