@@ -1,6 +1,3 @@
-//let shell = vec!["fn main() {","}"]
-
-use std::fs;
 use std::io;
 use std::io::Write;
 
@@ -93,7 +90,6 @@ fn parse_second_order(repl: &mut Repl, input: &str) {
 
 // prepare ground
 fn prepare_ground() -> Result<(), io::Error> {
-    fs::remove_dir_all("/tmp/rust_repl_bot").unwrap_or_default();
-    cargo_new()?;
+    cargo_new().unwrap_or_default();
     Ok(())
 }
