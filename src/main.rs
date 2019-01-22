@@ -1,12 +1,11 @@
 use std::io;
 use std::io::Write;
 
+use std::cmp::{max, min};
 use tuikit::attr::*;
-use tuikit::term::{Term, TermHeight};
-use tuikit::key::Key;
 use tuikit::event::Event;
-use std::cmp::{min, max};
-
+use tuikit::key::Key;
+use tuikit::term::{Term, TermHeight};
 
 pub mod cargo_cmd;
 mod eval;
@@ -48,7 +47,72 @@ impl Repl {
     }
 }
 
+struct Terminal {
+    term: Term,
+    repl: Repl,
+    buffer: String,
+    cursor: (usize, usize),
+}
+
+impl Terminal {
+    fn new() -> Self {
+        Self {
+            term: Term::with_height(TermHeight::Percent(30)).unwrap(),
+            repl: Repl::new(),
+            buffer: String::new(),
+            cursor: (0, 0),
+        }
+    }
+
+    fn run(&mut self) {
+        while let Ok(ev) = self.term.poll_event() {
+            let _ = self.term.clear();
+            let _ = self
+                .term
+                .print(0, 0, "press arrow key to move the text, (q) to quit");
+
+            let (width, height) = self.term.term_size().unwrap();
+            match ev {
+                Event::Key(Key::Up) => {
+                    let _ = self.term.clear();
+                    let _ = self.term.print(0, 0, "hello");
+                    self.term.present();
+                }
+                Event::Key(Key::Down) => (),
+                Event::Key(Key::Enter) => {
+                    //parse_first_order(&mut repl, self.buffer.clone());
+                    self.cursor = (0, 0);
+                    let _ = self.term.clear();
+                    self.term.set_cursor(self.cursor.0, self.cursor.1);
+                    self.buffer.clear();
+                    self.term.present();
+                }
+                Event::Key(Key::Ctrl(_)) => {
+                    dbg!("reached");
+                    std::process::exit(0)
+                }
+                _ => {
+                    if let Event::Key(Key::Char(letter)) = ev {
+                        self.buffer.push(letter);
+                        let _ = self.term.clear();
+                        self.cursor.1 += 1;
+                        self.term.set_cursor(self.cursor.0, self.cursor.1);
+                        let _ = self.term.print(0, 0, &self.buffer);
+
+                        self.term.present();
+                    } else {
+                        // some keys we dont need
+                    }
+                }
+            }
+        }
+    }
+}
 fn main() {
+    let mut terminal = Terminal::new();
+    terminal.run();
+}
+/* fn main() {
     let term = Term::with_height(TermHeight::Percent(10)).unwrap();
     let mut repl = Repl::new();
 
@@ -57,7 +121,7 @@ fn main() {
 
     while let Ok(ev) = term.poll_event() {
         let _ = term.clear();
-        let _ = term.print(0, 0, "press arrow key to move the text, (q) to quit"); 
+        let _ = term.print(0, 0, "press arrow key to move the text, (q) to quit");
 
         let (width, height) = term.term_size().unwrap();
         match ev {
@@ -65,7 +129,7 @@ fn main() {
                 let _ = term.clear();
                 let _ = term.print(0, 0, "hello");
                 term.present();
-            }, 
+            },
             Event::Key(Key::Down) => (),
             Event::Key(Key::Enter) => {
                 parse_first_order(&mut repl, buffer.clone());
@@ -78,7 +142,7 @@ fn main() {
                     cursor +=1;
                     term.set_cursor(0, cursor);
                     let _ = term.print(0, 0, &buffer);
-                    
+
                     term.present();
                 },
                 _ => ()
@@ -86,7 +150,7 @@ fn main() {
         }
 
     }
-}
+} */
 
 /* fn main() {
     prepare_ground().expect("Error while preparing repl");
