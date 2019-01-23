@@ -15,7 +15,7 @@ pub fn cargo_new() -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn cargo_run(code: String) -> Result<(), io::Error> {
+pub fn cargo_run(code: String) -> Result<String, io::Error> {
     let mut main = File::create("/tmp/rust_repl_playground/src/main.rs")?;
     write!(main, "{}", code)?;
     let out = Command::new("cargo")
@@ -26,11 +26,10 @@ pub fn cargo_run(code: String) -> Result<(), io::Error> {
     let stdout = String::from_utf8(out.stdout).expect("Invalid input (Not Utf-8)");
     let stderr = String::from_utf8(out.stderr).expect("Invalid input (Not Utf-8)");
     if stdout.is_empty() {
-        print!("{}", stderr);
+        Ok(stderr)
     } else {
-        print!("{}", stdout);
+        Ok(stdout)
     }
-    Ok(())
 }
 
 pub fn cargo_add(add_dep: &str) -> Result<(), io::Error> {
