@@ -1,10 +1,5 @@
-use std::io;
-use std::io::Write;
-
 use std::iter;
 
-use std::cmp::{max, min};
-use tuikit::attr::*;
 use tuikit::event::Event;
 use tuikit::key::Key;
 use tuikit::term::{Term, TermHeight};
@@ -52,13 +47,9 @@ impl Terminal {
         self.term.clear();
         self.term.present();
     }
-    fn advance_cursor(&mut self) {
-        self.cursor.1 += 1;
-        self.term.set_cursor(self.cursor.0, self.cursor.1);
-    }
+
     fn handle_letter(&mut self, letter: char) {
         self.buffer.push(letter);
-        //self.advance_cursor();
         self.write(&self.buffer.clone());
     }
 
