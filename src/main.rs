@@ -72,7 +72,20 @@ impl Terminal {
 
     fn write(&self, message: &str) {
         self.clear();
-        self.term.print(self.cursor.0, self.cursor.1, message);
+        self.term.print(
+            self.cursor.0,
+            self.cursor.1,
+            &format!("Out[1]: {}", message),
+        );
+        self.term.present();
+    }
+    fn write_buffer(&self) {
+        self.clear();
+        self.term.print(
+            self.cursor.0,
+            self.cursor.1,
+            &format!("In [{}]: {}", self.history.cursor, self.buffer),
+        );
         self.term.present();
     }
     fn clear(&self) {
@@ -82,7 +95,7 @@ impl Terminal {
 
     fn handle_letter(&mut self, letter: char) {
         self.buffer.push(letter);
-        self.write(&self.buffer.clone());
+        self.write_buffer();
     }
 
     // parsing
@@ -142,11 +155,11 @@ impl Terminal {
         match to {
             Arrow::Up => {
                 self.buffer = self.history.up();
-                self.write(&self.buffer.clone());
+                self.write_buffer();
             }
             Arrow::Down => {
                 self.buffer = self.history.down();
-                self.write(&self.buffer.clone());
+                self.write_buffer();
             }
         }
     }
@@ -162,7 +175,7 @@ impl Terminal {
                 }
                 Event::Key(Key::Backspace) => {
                     self.buffer.pop();
-                    self.write(&self.buffer.clone());
+                    self.write_buffer();
                 }
                 Event::Key(Key::Ctrl('C')) => std::process::exit(0),
                 _ => {
