@@ -12,6 +12,10 @@ use crate::cargo_cmd::cargo_add;
 use crate::eval::eval;
 use crate::repl::Repl;
 
+enum Arrow {
+    Up,
+    Down,
+}
 enum KeyWords {
     Reset,
     Code,
@@ -19,10 +23,37 @@ enum KeyWords {
     Add,
 }
 
+#[derive(Default)]
+struct History {
+    history: Vec<String>,
+    cursor: usize,
+}
+impl History {
+    fn down(&mut self) -> String {
+        if self.cursor == self.history.len() - 1 {
+            self.cursor = self.history.len() - 1;
+        } else {
+            self.cursor += 1;
+        }
+        self.history[self.cursor].clone()
+    }
+    fn up(&mut self) -> String {
+        if self.cursor == 0 {
+            self.cursor = 0;
+        } else {
+            self.cursor -= 1;
+        }
+        self.history[self.cursor].clone()
+    }
+    fn push(&mut self, buffer: String) {
+        self.history.push(buffer);
+    }
+}
 struct Terminal {
     term: Term,
     buffer: String,
     cursor: (usize, usize),
+    history: History,
 }
 
 impl Terminal {
@@ -31,6 +62,7 @@ impl Terminal {
             term: Term::with_height(TermHeight::Percent(30)).unwrap(),
             buffer: String::new(),
             cursor: (1, 0),
+            history: Default::default(),
         }
     }
 
@@ -83,12 +115,16 @@ impl Terminal {
             self.write(&result);
         }
     }
+    fn clear_buffer_save_history(&mut self) {
+        self.history.push(self.buffer.clone());
+        self.buffer.clear();
+    }
 
     fn handle_enter_key(&mut self, repl: &mut Repl) {
         self.buffer.trim();
         self.clear();
         self.parse_first_order(repl);
-        self.buffer.clear();
+        self.clear_buffer_save_history();
     }
 
     fn prepare_repl(&self) -> Repl {
@@ -102,12 +138,25 @@ impl Terminal {
         Repl::new()
     }
 
+    fn cycle_history(&mut self, to: Arrow) {
+        match to {
+            Arrow::Up => {
+                self.buffer = self.history.up();
+                self.write(&self.buffer.clone());
+            }
+            Arrow::Down => {
+                self.buffer = self.history.down();
+                self.write(&self.buffer.clone());
+            }
+        }
+    }
+
     fn run(&mut self) {
         let mut repl = self.prepare_repl();
         while let Ok(ev) = self.term.poll_event() {
             match ev {
-                Event::Key(Key::Up) => {}
-                Event::Key(Key::Down) => (),
+                Event::Key(Key::Up) => self.cycle_history(Arrow::Up),
+                Event::Key(Key::Down) => self.cycle_history(Arrow::Down),
                 Event::Key(Key::Enter) => {
                     self.handle_enter_key(&mut repl);
                 }

@@ -5,4 +5,4 @@ authors = ["Nbiba Bedis <bedisnbiba@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-tuikit = {git = 'https://github.com/sigmaSd/tuikit'}
+tuikit = {git = 'https://github.com/lotabout/tuikit'}
