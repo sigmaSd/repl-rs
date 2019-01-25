@@ -160,6 +160,10 @@ impl Terminal {
                 Event::Key(Key::Enter) => {
                     self.handle_enter_key(&mut repl);
                 }
+                Event::Key(Key::Backspace) => {
+                    self.buffer.pop();
+                    self.write(&self.buffer.clone());
+                }
                 Event::Key(Key::Ctrl('C')) => std::process::exit(0),
                 _ => {
                     if let Event::Key(Key::Char(letter)) = ev {
