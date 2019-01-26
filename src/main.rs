@@ -4,11 +4,11 @@ use tuikit::event::Event;
 use tuikit::key::Key;
 use tuikit::term::{Term, TermHeight};
 
-pub mod cargo_cmd;
+pub mod cargo_cmds;
 mod eval;
 mod repl;
 
-use crate::cargo_cmd::cargo_add;
+use crate::cargo_cmds::CargoCmds;
 use crate::eval::eval;
 use crate::repl::Repl;
 
@@ -30,23 +30,20 @@ struct History {
 }
 impl History {
     fn down(&mut self) -> String {
-        if self.cursor == self.history.len() - 1 {
-            self.cursor = self.history.len() - 1;
-        } else {
+        if self.cursor != self.history.len() - 1 {
             self.cursor += 1;
         }
         self.history[self.cursor].clone()
     }
     fn up(&mut self) -> String {
-        if self.cursor == 0 {
-            self.cursor = 0;
-        } else {
+        if self.cursor != 0 {
             self.cursor -= 1;
         }
         self.history[self.cursor].clone()
     }
     fn push(&mut self, buffer: String) {
         self.history.push(buffer);
+        self.cursor += 1;
     }
 }
 struct Terminal {
@@ -54,6 +51,7 @@ struct Terminal {
     buffer: String,
     cursor: (usize, usize),
     history: History,
+    cargo_cmds: CargoCmds,
 }
 
 impl Terminal {
@@ -63,39 +61,50 @@ impl Terminal {
             buffer: String::new(),
             cursor: (1, 0),
             history: Default::default(),
+            cargo_cmds: Default::default(),
         }
     }
 
     fn get_size(&self) -> (usize, usize) {
         self.term.term_size().unwrap()
     }
-
     fn write(&self, message: &str) {
         self.clear();
-        self.term.print(
-            self.cursor.0,
-            self.cursor.1,
-            &format!("Out[1]: {}", message),
-        );
-        self.term.present();
+        self.term
+            .print(self.cursor.0, self.cursor.1, message)
+            .unwrap();
+        self.term.present().unwrap();
     }
-    fn write_buffer(&self) {
+    fn write_output(&self, message: &str) {
         self.clear();
-        self.term.print(
-            self.cursor.0,
-            self.cursor.1,
-            &format!("In [{}]: {}", self.history.cursor, self.buffer),
-        );
-        self.term.present();
+        self.term
+            .print(
+                self.cursor.0,
+                self.cursor.1,
+                &format!("Out[{}]: {}", self.history.cursor, message),
+            )
+            .unwrap();
+        self.term.present().unwrap();
+    }
+    fn write_input_buffer(&self) {
+        self.clear();
+        self.term
+            .print(
+                self.cursor.0,
+                self.cursor.1,
+                &format!("In [{}]: {}", self.history.cursor, self.buffer),
+            )
+            .unwrap();
+        self.term.present().unwrap();
     }
     fn clear(&self) {
-        self.term.clear();
-        self.term.present();
+        self.term.clear().unwrap();
+        self.term.present().unwrap();
     }
 
     fn handle_letter(&mut self, letter: char) {
         self.buffer.push(letter);
-        self.write_buffer();
+        self.write_input_buffer();
     }
 
     // parsing
@@ -115,7 +124,10 @@ impl Terminal {
                 self.write("Repl reseted!")
             }
             KeyWords::Show => repl.show(),
-            KeyWords::Add => cargo_add(&self.buffer).expect("Error while trying to add dependency"),
+            KeyWords::Add => self
+                .cargo_cmds
+                .cargo_add(&self.buffer)
+                .expect("Error while trying to add dependency"),
         }
     }
 
@@ -123,9 +135,13 @@ impl Terminal {
         if self.buffer.ends_with(';') {
             repl.insert(self.buffer.clone());
         } else {
-            let result =
-                eval(repl.clone(), self.buffer.clone()).expect("Error while evaluating expression");
-            self.write(&result);
+            let current_code = eval(repl.clone(), self.buffer.clone());
+            let result = self
+                .cargo_cmds
+                .cargo_run(current_code)
+                .expect("error while running playground");
+
+            self.write_output(&result);
         }
     }
     fn clear_buffer_save_history(&mut self) {
@@ -147,25 +163,28 @@ impl Terminal {
             "{0}Welcome to Rust REPL{0}",
             iter::repeat('-').take(width / 10).collect::<String>()
         ));
-        Repl::prepare_ground();
-        Repl::new()
+        let repl = Repl::new();
+        repl.prepare_ground()
+            .expect("Error while preparing playground");
+        repl
     }
 
     fn cycle_history(&mut self, to: Arrow) {
         match to {
             Arrow::Up => {
                 self.buffer = self.history.up();
-                self.write_buffer();
+                self.write_input_buffer();
             }
             Arrow::Down => {
                 self.buffer = self.history.down();
-                self.write_buffer();
+                self.write_input_buffer();
             }
         }
     }
 
     fn run(&mut self) {
         let mut repl = self.prepare_repl();
+
         while let Ok(ev) = self.term.poll_event() {
             match ev {
                 Event::Key(Key::Up) => self.cycle_history(Arrow::Up),
@@ -175,7 +194,7 @@ impl Terminal {
                 }
                 Event::Key(Key::Backspace) => {
                     self.buffer.pop();
-                    self.write_buffer();
+                    self.write_input_buffer();
                 }
                 Event::Key(Key::Ctrl('C')) => std::process::exit(0),
                 _ => {
