@@ -3,6 +3,7 @@ mod eval;
 mod history;
 mod repl;
 mod terminal;
+mod helper_fns;
 
 use terminal::Terminal;
 

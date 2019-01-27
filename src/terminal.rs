@@ -6,6 +6,7 @@ use crate::cargo_cmds::CargoCmds;
 use crate::eval::eval;
 use crate::history::History;
 use crate::repl::Repl;
+use crate::helper_fns::balanced_delimiters;
 
 use std::iter;
 
@@ -31,6 +32,8 @@ pub struct Terminal {
     cursor: (usize, usize),
     history: History,
     cargo_cmds: CargoCmds,
+    continue_code: bool,
+    continue_buffer: String,
 }
 
 impl Terminal {
@@ -38,9 +41,11 @@ impl Terminal {
         Self {
             term: Term::with_height(TermHeight::Percent(100)).unwrap(),
             buffer: String::new(),
+            continue_buffer: String::new(),
             cursor: (0, 0),
             history: Default::default(),
             cargo_cmds: Default::default(),
+            continue_code: false,
         }
     }
 
@@ -81,7 +86,12 @@ impl Terminal {
 
     fn handle_letter(&mut self, letter: char) {
         self.buffer.push(letter);
-        self.write_input();
+        if self.continue_code {
+            self.continue_buffer.push(letter);
+            self.write(&self.continue_buffer.clone());
+        } else {
+            self.write_input();
+        }
     }
     fn reset(&mut self, repl: &mut Repl) {
         repl.reset();
@@ -144,6 +154,16 @@ impl Terminal {
 
     fn handle_enter_key(&mut self, repl: &mut Repl) {
         self.buffer.trim();
+
+        if !balanced_delimiters(&self.buffer) {
+            self.writeln("  ...");
+            self.continue_code = true;
+            self.cursor.1 += 6;
+            return;
+        } else {
+            self.continue_code = false;
+            self.cursor.1 = 0;
+        }
 
         let kind = self.parse_first_order(repl);
         match kind {
