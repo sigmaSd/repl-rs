@@ -60,9 +60,9 @@ impl Terminal {
             .unwrap();
         self.term.present().unwrap();
     }
-    fn write_output(&mut self, exp: String) {
-        self.history.push(exp.clone());
-        self.writeln(&format!("Out[{}]:{}", self.history.last_idx() - 1, exp));
+    fn write_output(&mut self, out: String) {
+        //self.history.push(out.clone());
+        self.writeln(&format!("Out[{}]:{}", self.history.last_idx(), out));
         self.buffer.clear();
         self.writeln("");
         self.write_input();
@@ -146,10 +146,15 @@ impl Terminal {
         match kind {
             Kind::Statement => {
                 self.history.push(self.buffer.clone());
+                //self.history.fake_out();
+                self.writeln("");
+                self.buffer.clear();
+                self.write_input();
             }
-            Kind::Expression(exp) => {
+            Kind::Expression(out) => {
                 self.history.push(self.buffer.clone());
-                self.write_output(exp);
+                self.write_output(out);
+                self.write_input();
             }
             _ => {}
         }
