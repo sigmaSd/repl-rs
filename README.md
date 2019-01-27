@@ -1,5 +1,5 @@
 # repl-rs
-Rust repl though with caveat ^^
+Rust repl 
 
 ## Keywords
 **reset** => reset repl
@@ -11,7 +11,7 @@ Rust repl though with caveat ^^
 ## Showcase
 <img src="./repl-rs.gif" width="80%" height="60%">
 
-## Plans
-**1-** Use [tuikit](https://github.com/lotabout/tuikit) as TUI
+## Current Plans
+**1-** Syntax highlight
+**2-** Autocompletion
 
-**2-** with **1** done, It would be possible to handle multiline input and cycling through history with arrow keys
