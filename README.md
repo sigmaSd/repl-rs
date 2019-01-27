@@ -26,3 +26,7 @@ You can use arrow keys to cycle through commands history
 **2-** Autocompletion
 
 ***NB:*** Would be cool to check out and maybe integrate **rls**
+
+## Current Limitations
+
+**1-** Does't support Windows, can happen if someone helps out with windows support on [tuikit](https://github.com/lotabout/tuikit)
