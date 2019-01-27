@@ -36,7 +36,7 @@ pub struct Terminal {
 impl Terminal {
     pub fn new() -> Self {
         Self {
-            term: Term::with_height(TermHeight::Percent(30)).unwrap(),
+            term: Term::with_height(TermHeight::Percent(100)).unwrap(),
             buffer: String::new(),
             cursor: (1, 0),
             history: Default::default(),
@@ -48,47 +48,28 @@ impl Terminal {
         self.term.term_size().unwrap()
     }
     fn write(&self, message: &str) {
-        self.clear();
+        self.term
+            .print(self.cursor.0, self.cursor.1, message)
+            .unwrap();
+        self.term.present().unwrap();
+    }
+    fn writeln(&mut self, message: &str) {
+        self.cursor.0 += 1;
         self.term
             .print(self.cursor.0, self.cursor.1, message)
             .unwrap();
         self.term.present().unwrap();
     }
     fn write_output(&mut self, exp: String) {
-        self.history.push(exp);
-        self.write_history();
-        self.term.present().unwrap();
+        self.history.push(exp.clone());
+        self.writeln(&format!("Out[{}]:{}", self.history.last_idx() - 1, exp));
         self.buffer.clear();
+        self.writeln("");
         self.write_input();
     }
-    fn write_history(&self) {
-        self.clear();
 
-        for (idx, (in_out_idx, line)) in self
-            .history
-            .buffer_vec
-            .iter()
-            .zip(&*self.history.line_idx)
-            .enumerate()
-        {
-            let prefix = if idx % 2 == 0 { "In[" } else { "Out[" };
-
-            self.term
-                .print(idx, 0, &format!("{0}{2}]: {1}", prefix, in_out_idx, line))
-                .unwrap();
-        }
-    }
     fn write_input(&self) {
-        self.clear();
-        self.write_history();
-        self.term
-            .print(
-                self.history.buffer_vec.len(),
-                0,
-                &format!("In[{}]: {}", self.history.last_idx(), self.buffer),
-            )
-            .unwrap();
-        self.term.present().unwrap();
+        self.write(&format!("In[{}]:{}", self.history.last_idx(), self.buffer));
     }
     fn clear(&self) {
         self.term.clear().unwrap();
@@ -101,7 +82,7 @@ impl Terminal {
     }
 
     // parsing
-    fn parse_first_order(&self, repl: &mut Repl) -> Kind {
+    fn parse_first_order(&mut self, repl: &mut Repl) -> Kind {
         let cmd = match self.buffer.as_str() {
             "reset" => KeyWords::Reset,
             "show" => KeyWords::Show,
@@ -112,17 +93,26 @@ impl Terminal {
             KeyWords::Code => self.parse_second_order(repl),
             KeyWords::Reset => {
                 repl.reset();
-                self.write("Repl reseted!");
+                self.writeln("Repl reseted!");
+                self.writeln("");
+                self.buffer.clear();
+                self.write_input();
                 Kind::Cmd
             }
             KeyWords::Show => {
-                repl.show();
+                self.writeln(&repl.show());
+                self.writeln("");
+                self.buffer.clear();
+                self.write_input();
                 Kind::Cmd
             }
             KeyWords::Add => {
                 self.cargo_cmds
                     .cargo_add(&self.buffer)
                     .expect("Error while trying to add dependency");
+                self.writeln("");
+                self.buffer.clear();
+                self.write_input();
                 Kind::Cmd
             }
         }
@@ -145,25 +135,30 @@ impl Terminal {
 
     fn handle_enter_key(&mut self, repl: &mut Repl) {
         self.buffer.trim();
-        self.history.push(self.buffer.clone());
 
         let kind = self.parse_first_order(repl);
         match kind {
-            Kind::Statement => {}
+            Kind::Statement => {
+                self.history.push(self.buffer.clone());
+            }
             Kind::Expression(exp) => {
+                self.history.push(self.buffer.clone());
                 self.write_output(exp);
             }
-            _ => unreachable!(),
+            _ => {}
         }
     }
 
-    fn prepare_repl(&self) -> Repl {
+    fn prepare_repl(&mut self) -> Repl {
         // welcome msg
         let width = self.get_size().0;
-        self.write(&format!(
+
+        self.clear();
+        self.writeln(&format!(
             "{0}Welcome to Rust REPL{0}",
             iter::repeat('-').take(width / 10).collect::<String>()
         ));
+        self.writeln("");
         let repl = Repl::new();
         repl.prepare_ground()
             .expect("Error while preparing playground");
@@ -174,15 +169,24 @@ impl Terminal {
         match to {
             Arrow::Up => {
                 self.buffer = self.history.up();
+                self.empty_input_line();
                 self.write_input();
             }
             Arrow::Down => {
                 self.buffer = self.history.down();
+                self.empty_input_line();
                 self.write_input();
             }
         }
     }
-
+    fn empty_input_line(&self) {
+        self.write(
+            &iter::repeat(" ")
+                // magic number
+                .take(500)
+                .collect::<String>(),
+        );
+    }
     pub fn run(&mut self) {
         let mut repl = self.prepare_repl();
 
@@ -195,6 +199,7 @@ impl Terminal {
                 }
                 Event::Key(Key::Backspace) => {
                     self.buffer.pop();
+                    self.empty_input_line();
                     self.write_input();
                 }
                 Event::Key(Key::Ctrl('C')) => std::process::exit(0),

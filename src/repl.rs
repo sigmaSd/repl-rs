@@ -25,8 +25,8 @@ impl Repl {
         self.prepare_ground().expect("Error while resetting Repl");
         *self = Self::new();
     }
-    pub fn show(&self) {
-        println!("Current Repl Code:\n{}", self.body.clone().join(""));
+    pub fn show(&self) -> String {
+        format!("Current Repl Code:\n{}", self.body.clone().join(""))
     }
     // prepare ground
     pub fn prepare_ground(&self) -> Result<(), io::Error> {
