@@ -183,6 +183,7 @@ impl Terminal {
         ));
         self.writeln("");
         self.writeln("");
+        self.write_input();
 
         repl
     }
@@ -227,7 +228,10 @@ impl Terminal {
                 Event::Key(Key::Ctrl('L')) => {
                     self.custom_clear("");
                 }
-                Event::Key(Key::Ctrl('C')) => std::process::exit(0),
+                Event::Key(Key::Ctrl('C')) => {
+                    self.clear();
+                    std::process::exit(0)
+                }
                 _ => {
                     if let Event::Key(Key::Char(letter)) = ev {
                         self.handle_letter(letter);
