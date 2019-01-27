@@ -17,4 +17,4 @@ Rust repl
 
 **2-** Autocompletion
 
-***NB: ***** Would be cool to check out and maybe integrate **rls** 
+***NB:*** Would be cool to check out and maybe integrate **rls** 
