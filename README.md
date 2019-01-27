@@ -14,6 +14,8 @@ You can use arrow keys to cycle through commands history
 
 **Ctrl-l** to clear repl
 
+**Ctrl-c** to exit
+
 ## Showcase
 <img src="./repl-rs.gif" width="80%" height="60%">
 
