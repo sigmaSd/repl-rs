@@ -1,7 +1,7 @@
-use crate::Repl;
+use crate::repl::Repl;
 
 pub fn eval(mut repl: Repl, input: String) -> String {
-    let eval_statement = format!("println!(\"{{:?}}\", {});", input);
+    let eval_statement = format!("println!(\"{{:?}}\", {{{}}});", input);
     repl.insert(eval_statement);
 
     repl.body.join("")
