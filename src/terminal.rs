@@ -65,6 +65,7 @@ impl Terminal {
                 self.writeln(&format!("Out[{}]: {}", self.history.last_idx() - 1, chunk));
             }
         });
+        self.writeln("");
         self.buffer.clear();
         //self.writeln("");
         self.write_input();
@@ -148,7 +149,7 @@ impl Terminal {
         match kind {
             Kind::Statement => {
                 self.history.push(self.buffer.clone());
-                //self.history.fake_out();
+                self.writeln("");
                 self.writeln("");
                 self.buffer.clear();
                 self.write_input();
