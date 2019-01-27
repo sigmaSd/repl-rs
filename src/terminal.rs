@@ -47,7 +47,7 @@ impl Terminal {
     fn get_size(&self) -> (usize, usize) {
         self.term.term_size().unwrap()
     }
-    fn write(&self, message: &str) {
+    fn write(&mut self, message: &str) {
         self.term
             .print(self.cursor.0, self.cursor.1, message)
             .unwrap();
@@ -55,20 +55,22 @@ impl Terminal {
     }
     fn writeln(&mut self, message: &str) {
         self.cursor.0 += 1;
-        self.term
-            .print(self.cursor.0, self.cursor.1, message)
-            .unwrap();
-        self.term.present().unwrap();
+        self.write(message);
     }
     fn write_output(&mut self, out: String) {
-        //self.history.push(out.clone());
-        self.writeln(&format!("Out[{}]:{}", self.history.last_idx(), out));
+        out.split('\n').enumerate().for_each(|(idx, chunk)| {
+            if idx != 0 {
+                self.writeln(&format!("            {}", chunk));
+            } else {
+                self.writeln(&format!("Out[{}]:{}", self.history.last_idx() - 1, chunk));
+            }
+        });
         self.buffer.clear();
-        self.writeln("");
+        //self.writeln("");
         self.write_input();
     }
 
-    fn write_input(&self) {
+    fn write_input(&mut self) {
         self.write(&format!("In[{}]:{}", self.history.last_idx(), self.buffer));
     }
     fn clear(&self) {
@@ -190,7 +192,7 @@ impl Terminal {
             }
         }
     }
-    fn empty_input_line(&self) {
+    fn empty_input_line(&mut self) {
         self.write(
             &iter::repeat(" ")
                 // magic number
