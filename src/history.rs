@@ -53,6 +53,9 @@ impl History {
     pub fn last_idx(&self) -> usize {
         *self.line_idx.last().unwrap()
     }
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
 }
 
 // helper fns

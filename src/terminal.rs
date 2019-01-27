@@ -80,9 +80,15 @@ impl Terminal {
         self.buffer.push(letter);
         self.write_input();
     }
+    fn reset(&mut self, repl: &mut Repl) {
+        repl.reset();
+        self.clear();
+        self.history.reset();
+        self.cursor = (1, 0);
+    }
 
     // parsing
-    fn parse_first_order(&mut self, repl: &mut Repl) -> Kind {
+    fn parse_first_order(&mut self, mut repl: &mut Repl) -> Kind {
         let cmd = match self.buffer.as_str() {
             "reset" => KeyWords::Reset,
             "show" => KeyWords::Show,
@@ -92,7 +98,7 @@ impl Terminal {
         match cmd {
             KeyWords::Code => self.parse_second_order(repl),
             KeyWords::Reset => {
-                repl.reset();
+                self.reset(&mut repl);
                 self.writeln("Repl reseted!");
                 self.writeln("");
                 self.buffer.clear();
