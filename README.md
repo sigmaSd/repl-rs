@@ -12,6 +12,9 @@ Rust repl
 <img src="./repl-rs.gif" width="80%" height="60%">
 
 ## Current Plans
+
 **1-** Syntax highlight
+
 **2-** Autocompletion
 
+***NB: ***** Would be cool to check out and maybe integrate **rls** 
