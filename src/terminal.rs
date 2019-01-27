@@ -38,7 +38,7 @@ impl Terminal {
         Self {
             term: Term::with_height(TermHeight::Percent(100)).unwrap(),
             buffer: String::new(),
-            cursor: (1, 0),
+            cursor: (0, 0),
             history: Default::default(),
             cargo_cmds: Default::default(),
         }
@@ -62,7 +62,7 @@ impl Terminal {
             if idx != 0 {
                 self.writeln(&format!("            {}", chunk));
             } else {
-                self.writeln(&format!("Out[{}]:{}", self.history.last_idx() - 1, chunk));
+                self.writeln(&format!("Out[{}]: {}", self.history.last_idx() - 1, chunk));
             }
         });
         self.buffer.clear();
@@ -71,7 +71,7 @@ impl Terminal {
     }
 
     fn write_input(&mut self) {
-        self.write(&format!("In[{}]:{}", self.history.last_idx(), self.buffer));
+        self.write(&format!("In[{}]: {}", self.history.last_idx(), self.buffer));
     }
     fn clear(&self) {
         self.term.clear().unwrap();
