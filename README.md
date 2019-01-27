@@ -8,9 +8,11 @@ Rust repl
 
 **add** *<dep_list>* => add dependencies (requires [cargo-edit](https://github.com/killercup/cargo-edit))
 
-**Use Ctrl-l** to clear repl
-
 - You can use arrow keys to cycle through commands history
+
+## Keybindings
+
+**Ctrl-l** to clear repl
 
 ## Showcase
 <img src="./repl-rs.gif" width="80%" height="60%">
