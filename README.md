@@ -8,7 +8,7 @@ Rust repl
 
 **add** *<dep_list>* => add dependencies (requires [cargo-edit](https://github.com/killercup/cargo-edit))
 
-- You can use arrow keys to cycle through commands history
+You can use arrow keys to cycle through commands history
 
 ## Keybindings
 
