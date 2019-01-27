@@ -164,6 +164,10 @@ impl Terminal {
 
     fn prepare_repl(&mut self) -> Repl {
         // welcome msg
+        let repl = Repl::new();
+        repl.prepare_ground()
+            .expect("Error while preparing playground");
+
         let width = self.get_size().0;
 
         self.clear();
@@ -172,9 +176,8 @@ impl Terminal {
             iter::repeat('-').take(width / 10).collect::<String>()
         ));
         self.writeln("");
-        let repl = Repl::new();
-        repl.prepare_ground()
-            .expect("Error while preparing playground");
+        self.writeln("");
+
         repl
     }
 

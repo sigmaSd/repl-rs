@@ -1,9 +1,8 @@
 use std::env::temp_dir;
-use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Clone)]
@@ -34,12 +33,14 @@ impl Default for CargoCmds {
 }
 impl CargoCmds {
     pub fn cargo_new(&self) -> Result<(), io::Error> {
-        let _ = fs::remove_dir_all(&*self.rust_repl_playground_dir);
-        Command::new("cargo")
-            .current_dir(&*self.tmp_dir)
-            .args(&["new", "rust_repl_playground"])
-            .spawn()?
-            .wait()?;
+        if !Path::new(&self.rust_repl_playground_dir).exists() {
+            Command::new("cargo")
+                .current_dir(&*self.tmp_dir)
+                .args(&["new", "rust_repl_playground"])
+                .spawn()?
+                .wait()?;
+        }
+        self.cargo_build()?;
         Ok(())
     }
 
@@ -69,6 +70,15 @@ impl CargoCmds {
         Command::new("cargo")
             .current_dir(&*self.rust_repl_playground_dir)
             .args(&add_dep)
+            .spawn()?
+            .wait()?;
+        Ok(())
+    }
+
+    fn cargo_build(&self) -> Result<(), io::Error> {
+        Command::new("cargo")
+            .current_dir(&*self.rust_repl_playground_dir)
+            .arg("build")
             .spawn()?
             .wait()?;
         Ok(())
