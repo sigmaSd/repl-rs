@@ -1,3 +1,4 @@
+use tuikit::attr::{Attr, Color};
 use tuikit::event::Event;
 use tuikit::key::Key;
 use tuikit::term::{Term, TermHeight};
@@ -47,15 +48,19 @@ impl Terminal {
     fn get_size(&self) -> (usize, usize) {
         self.term.term_size().unwrap()
     }
-    fn write(&mut self, message: &str) {
+    fn write(&mut self, message: &str, color: Color) {
+        let attr = Attr {
+            fg: color,
+            ..Attr::default()
+        };
         self.term
-            .print(self.cursor.0, self.cursor.1, message)
+            .print_with_attr(self.cursor.0, self.cursor.1, message, attr)
             .unwrap();
         self.term.present().unwrap();
     }
     fn writeln(&mut self, message: &str) {
         self.cursor.0 += 1;
-        self.write(message);
+        self.write(message, Color::LIGHT_RED);
     }
     fn write_output(&mut self, out: String) {
         out.split('\n').enumerate().for_each(|(idx, chunk)| {
@@ -72,7 +77,10 @@ impl Terminal {
     }
 
     fn write_input(&mut self) {
-        self.write(&format!("In[{}]: {}", self.history.last_idx(), self.buffer));
+        self.write(
+            &format!("In[{}]: {}", self.history.last_idx(), self.buffer),
+            Color::YELLOW,
+        );
     }
     fn clear(&self) {
         self.term.clear().unwrap();
@@ -177,10 +185,14 @@ impl Terminal {
         let width = self.get_size().0;
 
         self.clear();
-        self.writeln(&format!(
-            "{0}Welcome to Rust REPL{0}",
-            iter::repeat('-').take(width / 10).collect::<String>()
-        ));
+        self.cursor.1 += 1;
+        self.write(
+            &format!(
+                "{0}Welcome to Rust REPL{0}",
+                iter::repeat('-').take(width / 10).collect::<String>()
+            ),
+            Color::BLUE,
+        );
         self.writeln("");
         self.writeln("");
         self.write_input();
@@ -208,6 +220,7 @@ impl Terminal {
                 // magic number
                 .take(500)
                 .collect::<String>(),
+            Color::LIGHT_BLUE,
         );
     }
     pub fn run(&mut self) {
