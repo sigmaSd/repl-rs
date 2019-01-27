@@ -83,11 +83,20 @@ impl Terminal {
         self.buffer.push(letter);
         self.write_input();
     }
-    fn reset(&mut self, repl: &mut Repl) {
+    fn reset(&mut self, repl: &mut Repl, msg: &str) {
         repl.reset();
+        self.custom_clear(msg);
+    }
+    fn custom_clear(&mut self, msg: &str) {
         self.clear();
         self.history.reset();
-        self.cursor = (1, 0);
+        self.cursor = (0, 0);
+        if !msg.is_empty() {
+            self.writeln(msg);
+        }
+        self.writeln("");
+        self.buffer.clear();
+        self.write_input();
     }
 
     // parsing
@@ -101,11 +110,7 @@ impl Terminal {
         match cmd {
             KeyWords::Code => self.parse_second_order(repl),
             KeyWords::Reset => {
-                self.reset(&mut repl);
-                self.writeln("Repl reseted!");
-                self.writeln("");
-                self.buffer.clear();
-                self.write_input();
+                self.reset(&mut repl, "Repl reseted!");
                 Kind::Cmd
             }
             KeyWords::Show => {
@@ -218,6 +223,9 @@ impl Terminal {
                     self.buffer.pop();
                     self.empty_input_line();
                     self.write_input();
+                }
+                Event::Key(Key::Ctrl('L')) => {
+                    self.custom_clear("");
                 }
                 Event::Key(Key::Ctrl('C')) => std::process::exit(0),
                 _ => {
