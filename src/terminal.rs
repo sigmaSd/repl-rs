@@ -4,31 +4,12 @@ use tuikit::key::Key;
 use tuikit::term::{Term, TermHeight};
 
 use crate::cargo_cmds::CargoCmds;
+use crate::enums::{Arrow, Direction, KeyWords, Kind};
 use crate::eval::eval;
 use crate::history::History;
 use crate::repl::Repl;
 
 use std::iter;
-
-enum Direction {
-    Right,
-    Left,
-}
-enum Kind {
-    Statement,
-    Expression(String),
-    Cmd,
-}
-enum Arrow {
-    Up,
-    Down,
-}
-enum KeyWords {
-    Reset,
-    Code,
-    Show,
-    Add,
-}
 
 pub struct Terminal {
     term: Term,
