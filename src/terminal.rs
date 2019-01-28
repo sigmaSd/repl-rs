@@ -19,6 +19,8 @@ pub struct Terminal {
     cargo_cmds: CargoCmds,
     blinking_cursor: (usize, usize),
     left_margin: usize,
+    terminal_screen: Vec<(String, Color)>,
+    record: bool,
 }
 
 impl Terminal {
@@ -31,6 +33,8 @@ impl Terminal {
             history: Default::default(),
             cargo_cmds: Default::default(),
             left_margin: 8,
+            terminal_screen: Vec::new(),
+            record: true
         };
         terminal.term.show_cursor(true).unwrap();
         terminal
@@ -42,10 +46,34 @@ impl Terminal {
             fg: color,
             ..Attr::default()
         };
+        if self.record {
+            self.terminal_screen.push((message.to_string(), color));
+        }
         self.print_blinking_cursor();
         self.term
             .print_with_attr(self.cursor.0, self.cursor.1, message, attr)
             .unwrap();
+        self.term.present().unwrap();
+        self.record = true;
+    }
+    fn rewrite(&mut self) {
+        // for val in self.terminal_screen.clone() {
+        //     self.writeln(&val);
+        // }
+        //self.writeln("------------------5555555555555555555-------------------");
+        self.terminal_screen = slide(&self.terminal_screen);
+        self.clear();
+        self.cursor = (0, 1);
+        for (val, color) in self.terminal_screen.clone() {
+            let attr = Attr {
+                fg: color,
+                ..Attr::default()
+            };
+            self.term
+                .print_with_attr(self.cursor.0, self.cursor.1, &val, attr)
+                .unwrap();
+            self.cursor.0 += 1;
+        }
         self.term.present().unwrap();
     }
     fn writeln(&mut self, message: &str) {
@@ -181,6 +209,7 @@ impl Terminal {
         self.buffer
             .insert(self.blinking_cursor_actual_pos(), letter);
         self.move_blinking_cursor_auto(Direction::Right);
+        self.record = false;
         self.write_input();
     }
     fn cycle_history(&mut self, to: Arrow) {
@@ -287,7 +316,10 @@ impl Terminal {
                     self.empty_input_line();
                     self.write_input();
                 }
-                Event::Key(Key::AltEnter) => {}
+                Event::Key(Key::CtrlLeft) => {
+                    //self.write(&self.terminal_screen.join(""),Color::default());
+                    self.rewrite();
+                }
                 Event::Key(Key::Ctrl('L')) => {
                     self.custom_clear("");
                 }
@@ -307,4 +339,12 @@ impl Terminal {
             }
         }
     }
+}
+fn slide(v: &Vec<(String, Color)>) -> Vec<(String, Color)> {
+    let mut new_v = Vec::new();
+    for (val,c) in v.iter().skip(1) {
+        new_v.push((val.clone(), c.clone()));
+    }
+    new_v.push(v.last().unwrap().clone());
+    new_v
 }
