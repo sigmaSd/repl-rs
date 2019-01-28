@@ -10,6 +10,10 @@ use crate::repl::Repl;
 
 use std::iter;
 
+enum Direction {
+    Right,
+    Left,
+}
 enum Kind {
     Statement,
     Expression(String),
@@ -32,27 +36,32 @@ pub struct Terminal {
     cursor: (usize, usize),
     history: History,
     cargo_cmds: CargoCmds,
+    blinking_cursor: (usize, usize),
+    left_margin: usize,
 }
 
 impl Terminal {
     pub fn new() -> Self {
-        Self {
+        let terminal = Self {
             term: Term::with_height(TermHeight::Percent(100)).unwrap(),
             buffer: String::new(),
             cursor: (0, 0),
+            blinking_cursor: (0, 8),
             history: Default::default(),
             cargo_cmds: Default::default(),
-        }
+            left_margin: 8,
+        };
+        terminal.term.show_cursor(true).unwrap();
+        terminal
     }
 
-    fn get_size(&self) -> (usize, usize) {
-        self.term.term_size().unwrap()
-    }
+    // write methods
     fn write(&mut self, message: &str, color: Color) {
         let attr = Attr {
             fg: color,
             ..Attr::default()
         };
+        self.print_blinking_cursor();
         self.term
             .print_with_attr(self.cursor.0, self.cursor.1, message, attr)
             .unwrap();
@@ -70,9 +79,8 @@ impl Terminal {
                 self.writeln(&format!("Out[{}]: {}", self.history.last_idx() - 1, chunk));
             }
         });
-        self.writeln("");
+        self.empty_new_line(1);
         self.buffer.clear();
-        //self.writeln("");
         self.write_input();
     }
 
@@ -82,31 +90,43 @@ impl Terminal {
             Color::YELLOW,
         );
     }
-    fn clear(&self) {
-        self.term.clear().unwrap();
+
+    // cursor + blinking cursor
+    fn blinking_cursor_actual_pos(&self) -> usize {
+        if self.blinking_cursor.1 >= self.left_margin {
+            self.blinking_cursor.1 - self.left_margin
+        } else {
+            0
+        }
+    }
+    fn move_blinking_cursor_manuel(&mut self, direction: Direction) {
+        self.move_blinking_cursor_auto(direction);
+        self.print_blinking_cursor();
         self.term.present().unwrap();
     }
-
-    fn handle_letter(&mut self, letter: char) {
-        self.buffer.push(letter);
-        self.write_input();
-    }
-    fn reset(&mut self, repl: &mut Repl, msg: &str) {
-        repl.reset();
-        self.custom_clear(msg);
-    }
-    fn custom_clear(&mut self, msg: &str) {
-        self.clear();
-        self.history.reset();
-        self.cursor = (0, 0);
-        if !msg.is_empty() {
-            self.writeln(msg);
+    fn move_blinking_cursor_auto(&mut self, direction: Direction) {
+        match direction {
+            Direction::Right => self.blinking_cursor.1 += 1,
+            Direction::Left => self.blinking_cursor.1 -= 1,
         }
-        self.writeln("");
-        self.buffer.clear();
-        self.write_input();
+        if self.blinking_cursor.1 < self.left_margin {
+            self.blinking_cursor.1 = self.left_margin;
+        }
     }
-
+    fn print_blinking_cursor(&mut self) {
+        self.blinking_cursor.0 = self.cursor.0;
+        self.term
+            .set_cursor(self.blinking_cursor.0, self.blinking_cursor.1)
+            .unwrap();
+    }
+    fn reset_blinking_cursor_col(&mut self) {
+        self.blinking_cursor.1 = self.buffer.len() + self.left_margin;
+    }
+    fn reset_cursors(&mut self) {
+        self.cursor = (0, 0);
+        self.left_margin = 7;
+        self.blinking_cursor = (0, 7);
+    }
     // parsing
     fn parse_first_order(&mut self, mut repl: &mut Repl) -> Kind {
         let cmd = match self.buffer.as_str() {
@@ -123,8 +143,9 @@ impl Terminal {
             }
             KeyWords::Show => {
                 self.writeln(&repl.show());
-                self.writeln("");
+                self.empty_new_line(1);
                 self.buffer.clear();
+                self.reset_blinking_cursor_col();
                 self.write_input();
                 Kind::Cmd
             }
@@ -154,28 +175,95 @@ impl Terminal {
             Kind::Expression(result)
         }
     }
-
+    // events handling
     fn handle_enter_key(&mut self, repl: &mut Repl) {
         self.buffer.trim();
-
         let kind = self.parse_first_order(repl);
         match kind {
             Kind::Statement => {
                 self.history.push(self.buffer.clone());
-                self.writeln("");
-                self.writeln("");
+                self.empty_new_line(2);
                 self.buffer.clear();
+                self.reset_blinking_cursor_col();
                 self.write_input();
             }
             Kind::Expression(out) => {
                 self.history.push(self.buffer.clone());
                 self.write_output(out);
+                self.reset_blinking_cursor_col();
                 self.write_input();
             }
             _ => {}
         }
     }
+    fn handle_character(&mut self, letter: char) {
+        self.buffer
+            .insert(self.blinking_cursor_actual_pos(), letter);
+        self.move_blinking_cursor_auto(Direction::Right);
+        self.write_input();
+    }
+    fn cycle_history(&mut self, to: Arrow) {
+        match to {
+            Arrow::Up => {
+                self.buffer = self.history.up();
+                self.empty_input_line();
+                self.reset_blinking_cursor_col();
+                self.write_input();
+            }
+            Arrow::Down => {
+                self.buffer = self.history.down();
+                self.empty_input_line();
+                self.reset_blinking_cursor_col();
+                self.write_input();
+            }
+        }
+    }
 
+    // wrapers
+
+    fn clear(&self) {
+        self.term.clear().unwrap();
+        self.term.present().unwrap();
+    }
+
+    fn custom_clear(&mut self, msg: &str) {
+        self.clear();
+        self.history.reset();
+        self.reset_cursors();
+        if !msg.is_empty() {
+            self.writeln(msg);
+        }
+        self.empty_new_line(1);
+        self.buffer.clear();
+        self.write_input();
+    }
+    fn reset(&mut self, repl: &mut Repl, msg: &str) {
+        repl.reset();
+        self.custom_clear(msg);
+    }
+    fn empty_new_line(&mut self, n: usize) {
+        if n == 0 {
+            self.write("", Color::Default);
+        } else {
+            for _ in 0..=n {
+                self.writeln("");
+            }
+        }
+    }
+    fn empty_input_line(&mut self) {
+        self.write(
+            &iter::repeat(" ")
+                // magic number
+                .take(500)
+                .collect::<String>(),
+            Color::LIGHT_BLUE,
+        );
+    }
+    fn get_size(&self) -> (usize, usize) {
+        self.term.term_size().unwrap()
+    }
+
+    // prepare repl
     fn prepare_repl(&mut self) -> Repl {
         // welcome msg
         let repl = Repl::new();
@@ -189,40 +277,17 @@ impl Terminal {
         self.write(
             &format!(
                 "{0}Welcome to Rust REPL{0}",
-                iter::repeat('-').take(width / 10).collect::<String>()
+                iter::repeat('-').take(width / 3).collect::<String>()
             ),
             Color::BLUE,
         );
-        self.writeln("");
-        self.writeln("");
+        self.empty_new_line(2);
         self.write_input();
 
         repl
     }
 
-    fn cycle_history(&mut self, to: Arrow) {
-        match to {
-            Arrow::Up => {
-                self.buffer = self.history.up();
-                self.empty_input_line();
-                self.write_input();
-            }
-            Arrow::Down => {
-                self.buffer = self.history.down();
-                self.empty_input_line();
-                self.write_input();
-            }
-        }
-    }
-    fn empty_input_line(&mut self) {
-        self.write(
-            &iter::repeat(" ")
-                // magic number
-                .take(500)
-                .collect::<String>(),
-            Color::LIGHT_BLUE,
-        );
-    }
+    // run
     pub fn run(&mut self) {
         let mut repl = self.prepare_repl();
 
@@ -230,26 +295,32 @@ impl Terminal {
             match ev {
                 Event::Key(Key::Up) => self.cycle_history(Arrow::Up),
                 Event::Key(Key::Down) => self.cycle_history(Arrow::Down),
+                Event::Key(Key::Right) => self.move_blinking_cursor_manuel(Direction::Right),
+                Event::Key(Key::Left) => self.move_blinking_cursor_manuel(Direction::Left),
                 Event::Key(Key::Enter) => {
                     self.handle_enter_key(&mut repl);
                 }
                 Event::Key(Key::Backspace) => {
-                    self.buffer.pop();
+                    self.move_blinking_cursor_auto(Direction::Left);
+                    self.buffer.remove(self.blinking_cursor_actual_pos());
                     self.empty_input_line();
                     self.write_input();
                 }
+                Event::Key(Key::AltEnter) => {}
                 Event::Key(Key::Ctrl('L')) => {
                     self.custom_clear("");
                 }
                 Event::Key(Key::Ctrl('C')) => {
                     self.clear();
+                    self.reset_cursors();
+                    self.empty_new_line(0);
                     std::process::exit(0)
                 }
                 _ => {
                     if let Event::Key(Key::Char(letter)) = ev {
-                        self.handle_letter(letter);
+                        self.handle_character(letter);
                     } else {
-                        // some keys we dont need
+                        // some keys we dont need?
                     }
                 }
             }
