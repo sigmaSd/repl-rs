@@ -18,11 +18,9 @@ pub struct Terminal {
     history: History,
     cargo_cmds: CargoCmds,
     blinking_cursor: (usize, usize),
-    left_margin: usize,
     terminal_screen: Vec<(String, Color)>,
-    record: bool,
+    left_margin: usize,
 }
-
 impl Terminal {
     pub fn new() -> Self {
         let terminal = Self {
@@ -32,9 +30,8 @@ impl Terminal {
             blinking_cursor: (0, 8),
             history: Default::default(),
             cargo_cmds: Default::default(),
-            left_margin: 8,
             terminal_screen: Vec::new(),
-            record: true
+            left_margin: 8,
         };
         terminal.term.show_cursor(true).unwrap();
         terminal
@@ -46,36 +43,13 @@ impl Terminal {
             fg: color,
             ..Attr::default()
         };
-        if self.record {
-            self.terminal_screen.push((message.to_string(), color));
-        }
         self.print_blinking_cursor();
         self.term
             .print_with_attr(self.cursor.0, self.cursor.1, message, attr)
             .unwrap();
         self.term.present().unwrap();
-        self.record = true;
     }
-    fn rewrite(&mut self) {
-        // for val in self.terminal_screen.clone() {
-        //     self.writeln(&val);
-        // }
-        //self.writeln("------------------5555555555555555555-------------------");
-        self.terminal_screen = slide(&self.terminal_screen);
-        self.clear();
-        self.cursor = (0, 1);
-        for (val, color) in self.terminal_screen.clone() {
-            let attr = Attr {
-                fg: color,
-                ..Attr::default()
-            };
-            self.term
-                .print_with_attr(self.cursor.0, self.cursor.1, &val, attr)
-                .unwrap();
-            self.cursor.0 += 1;
-        }
-        self.term.present().unwrap();
-    }
+
     fn writeln(&mut self, message: &str) {
         self.cursor.0 += 1;
         self.write(message, Color::LIGHT_RED);
@@ -85,9 +59,10 @@ impl Terminal {
             if idx != 0 {
                 self.writeln(&format!("            {}", chunk));
             } else {
-                self.writeln(&format!("Out[{}]: {}", self.history.last_idx() - 1, chunk));
+                self.writeln(&format!(" Out[{}]: {}", self.history.last_idx() - 1, chunk));
             }
         });
+        self.scroll_down();
         self.empty_new_line(1);
         self.buffer.clear();
         self.write_input();
@@ -95,18 +70,49 @@ impl Terminal {
 
     fn write_input(&mut self) {
         self.write(
-            &format!("In[{}]: {}", self.history.last_idx(), self.buffer),
+            &format!(" In[{}]: {}", self.history.last_idx(), self.buffer),
             Color::YELLOW,
         );
+    }
+    fn rewrite(&mut self) {
+        self.terminal_screen.remove(0);
+        self.clear();
+        self.reset_cursors();
+        self.empty_new_line(1);
+        for (val, color) in self.terminal_screen.clone() {
+            let space = if color == Color::LIGHT_RED { 2 } else { 1 };
+            let attr = Attr {
+                fg: color,
+                ..Attr::default()
+            };
+            self.term
+                .print_with_attr(self.cursor.0, self.cursor.1, &val, attr)
+                .unwrap();
+            self.cursor.0 += space;
+        }
+        if self.terminal_screen.last().unwrap().1 == Color::YELLOW {
+            self.cursor.0 -= 1;
+        }
+        self.print_blinking_cursor();
+        self.term.present().unwrap();
+    }
+    fn scroll_down(&mut self) {
+        if self.cursor.0 as f32 >= 3.0 / 4.0 * self.get_size().1 as f32 {
+            self.rewrite();
+        }
+    }
+    fn back_space(&mut self) {
+        self.move_blinking_cursor_auto(Direction::Left);
+        if !self.buffer.is_empty() {
+            self.buffer.remove(self.blinking_cursor_actual_pos());
+        }
+        self.empty_input_line();
+        self.write_input();
     }
 
     // cursor + blinking cursor
     fn blinking_cursor_actual_pos(&self) -> usize {
-        if self.blinking_cursor.1 >= self.left_margin {
-            self.blinking_cursor.1 - self.left_margin
-        } else {
-            0
-        }
+        self.blinking_cursor.1 - self.left_margin
     }
     fn move_blinking_cursor_manuel(&mut self, direction: Direction) {
         self.move_blinking_cursor_auto(direction);
@@ -121,6 +127,9 @@ impl Terminal {
         if self.blinking_cursor.1 < self.left_margin {
             self.blinking_cursor.1 = self.left_margin;
         }
+        if self.blinking_cursor.1 > self.left_margin + self.buffer.len() {
+            self.blinking_cursor.1 = self.left_margin + self.buffer.len();
+        }
     }
     fn print_blinking_cursor(&mut self) {
         self.blinking_cursor.0 = self.cursor.0;
@@ -133,8 +142,7 @@ impl Terminal {
     }
     fn reset_cursors(&mut self) {
         self.cursor = (0, 0);
-        self.left_margin = 7;
-        self.blinking_cursor = (0, 7);
+        self.blinking_cursor = (0, self.left_margin);
     }
     // parsing
     fn parse_first_order(&mut self, mut repl: &mut Repl) -> Kind {
@@ -186,18 +194,31 @@ impl Terminal {
     }
     // events handling
     fn handle_enter_key(&mut self, repl: &mut Repl) {
+        if self.history.last_idx() != 0 && is_it_pow(self.history.last_idx() + 1, 10) {
+            self.left_margin += 1;
+        }
         self.buffer.trim();
+        self.terminal_screen.push((
+            format!(" In[{}]: {}", self.history.last_idx(), self.buffer),
+            Color::YELLOW,
+        ));
+        self.scroll_down();
+
         let kind = self.parse_first_order(repl);
         match kind {
             Kind::Statement => {
                 self.history.push(self.buffer.clone());
-                self.empty_new_line(2);
+                self.empty_new_line(1);
                 self.buffer.clear();
                 self.reset_blinking_cursor_col();
                 self.write_input();
             }
             Kind::Expression(out) => {
                 self.history.push(self.buffer.clone());
+                self.terminal_screen.push((
+                    format!(" Out[{}]: {}", self.history.last_idx() - 1, out),
+                    Color::LIGHT_RED,
+                ));
                 self.write_output(out);
                 self.reset_blinking_cursor_col();
                 self.write_input();
@@ -209,7 +230,6 @@ impl Terminal {
         self.buffer
             .insert(self.blinking_cursor_actual_pos(), letter);
         self.move_blinking_cursor_auto(Direction::Right);
-        self.record = false;
         self.write_input();
     }
     fn cycle_history(&mut self, to: Arrow) {
@@ -237,9 +257,11 @@ impl Terminal {
     }
 
     fn custom_clear(&mut self, msg: &str) {
+        self.left_margin = 8;
         self.clear();
         self.history.reset();
         self.reset_cursors();
+        self.terminal_screen.clear();
         if !msg.is_empty() {
             self.writeln(msg);
         }
@@ -283,7 +305,6 @@ impl Terminal {
         let width = self.get_size().0;
 
         self.clear();
-        self.cursor.1 += 1;
         self.write(
             &format!(
                 "{0}Welcome to Rust REPL{0}",
@@ -311,14 +332,13 @@ impl Terminal {
                     self.handle_enter_key(&mut repl);
                 }
                 Event::Key(Key::Backspace) => {
-                    self.move_blinking_cursor_auto(Direction::Left);
-                    self.buffer.remove(self.blinking_cursor_actual_pos());
-                    self.empty_input_line();
-                    self.write_input();
+                    self.back_space();
                 }
                 Event::Key(Key::CtrlLeft) => {
+                    // for testing
+
                     //self.write(&self.terminal_screen.join(""),Color::default());
-                    self.rewrite();
+                    //self.rewrite();
                 }
                 Event::Key(Key::Ctrl('L')) => {
                     self.custom_clear("");
@@ -340,11 +360,19 @@ impl Terminal {
         }
     }
 }
-fn slide(v: &Vec<(String, Color)>) -> Vec<(String, Color)> {
-    let mut new_v = Vec::new();
-    for (val,c) in v.iter().skip(1) {
-        new_v.push((val.clone(), c.clone()));
+
+fn is_it_pow(input: usize, mut candidate: usize) -> bool {
+    let original_candidiate = candidate;
+    if input < candidate {
+        return false;
     }
-    new_v.push(v.last().unwrap().clone());
-    new_v
+    loop {
+        if input == candidate {
+            return true;
+        }
+        candidate *= original_candidiate;
+        if input < candidate {
+            return false;
+        }
+    }
 }
