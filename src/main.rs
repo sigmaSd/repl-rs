@@ -1,6 +1,7 @@
 mod cargo_cmds;
 mod enums;
 mod eval;
+mod helper_fns;
 mod history;
 mod repl;
 mod terminal;
