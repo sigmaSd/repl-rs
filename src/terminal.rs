@@ -361,6 +361,8 @@ impl Terminal {
     }
 }
 
+// helpers
+
 fn is_it_pow(input: usize, mut candidate: usize) -> bool {
     let original_candidiate = candidate;
     if input < candidate {
