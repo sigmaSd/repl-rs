@@ -1,7 +1,7 @@
 // helpers
 
 pub fn is_it_pow(input: usize, mut candidate: usize) -> bool {
-    let original_candidiate = candidate;
+    let original_candidate = candidate;
     if input < candidate {
         return false;
     }
@@ -9,7 +9,7 @@ pub fn is_it_pow(input: usize, mut candidate: usize) -> bool {
         if input == candidate {
             return true;
         }
-        candidate *= original_candidiate;
+        candidate *= original_candidate;
         if input < candidate {
             return false;
         }
