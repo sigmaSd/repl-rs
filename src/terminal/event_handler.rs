@@ -38,11 +38,32 @@ impl Terminal {
             }
             _ => {}
         }
+        self.history.go_to_last();
     }
     pub fn handle_character(&mut self, letter: char) {
+        self.scroll_to_end();
         self.buffer.insert(self.blinking_cursor_col_pos(), letter);
         self.move_blinking_cursor_auto(Direction::Right);
         self.write_input();
+    }
+    fn scroll_to_end(&mut self) {
+        if self.screen_cursor.0 != self.screen_cursor.1 {
+            self.screen_cursor.0 = self.screen_cursor.1;
+            self.write_screen();
+        }
+    }
+    pub fn scroll_up(&mut self) {
+        if self.screen_cursor.0 > 0 {
+            self.screen_cursor.0 -= 1;
+            self.write_screen();
+        }
+    }
+    pub fn scroll_down(&mut self) {
+        if self.cursor.0 as f32 >= 3.0 / 4.0 * self.get_size().1 as f32 {
+            self.screen_cursor.0 += 1;
+            self.screen_cursor.1 += 1;
+            self.write_screen();
+        }
     }
     pub fn cycle_history(&mut self, to: Arrow) {
         match to {

@@ -9,7 +9,7 @@ impl Terminal {
             fg: color,
             ..Attr::default()
         };
-        self.print_blinking_cursor();
+        self.correct_blinking_cursor_row();
         self.term
             .print_with_attr(self.cursor.0, self.cursor.1, message, attr)
             .unwrap();
@@ -40,12 +40,11 @@ impl Terminal {
             Color::YELLOW,
         );
     }
-    pub fn rewrite(&mut self) {
-        self.terminal_screen.remove(0);
+    pub fn write_screen(&mut self) {
         self.clear();
         self.reset_cursors();
         self.empty_new_line(1);
-        for (val, color) in self.terminal_screen.clone() {
+        for (val, color) in self.terminal_screen[self.screen_cursor.0..].to_owned() {
             let space = if color == Color::LIGHT_RED { 2 } else { 1 };
             let attr = Attr {
                 fg: color,
@@ -59,13 +58,9 @@ impl Terminal {
         if self.terminal_screen.last().unwrap().1 == Color::YELLOW {
             self.cursor.0 -= 1;
         }
-        self.print_blinking_cursor();
+        self.correct_blinking_cursor_row();
         self.term.present().unwrap();
-    }
-    pub fn scroll_down(&mut self) {
-        if self.cursor.0 as f32 >= 3.0 / 4.0 * self.get_size().1 as f32 {
-            self.rewrite();
-        }
+        self.write_input();
     }
     pub fn back_space(&mut self) {
         self.move_blinking_cursor_auto(Direction::Left);
@@ -82,7 +77,7 @@ impl Terminal {
     }
     pub fn move_blinking_cursor_manuel(&mut self, direction: Direction) {
         self.move_blinking_cursor_auto(direction);
-        self.print_blinking_cursor();
+        self.correct_blinking_cursor_row();
         self.term.present().unwrap();
     }
     pub fn move_blinking_cursor_auto(&mut self, direction: Direction) {
@@ -97,7 +92,7 @@ impl Terminal {
             self.blinking_cursor.1 = self.left_margin + self.buffer.len();
         }
     }
-    pub fn print_blinking_cursor(&mut self) {
+    pub fn correct_blinking_cursor_row(&mut self) {
         self.blinking_cursor.0 = self.cursor.0;
         self.term
             .set_cursor(self.blinking_cursor.0, self.blinking_cursor.1)
@@ -108,6 +103,6 @@ impl Terminal {
     }
     pub fn reset_cursors(&mut self) {
         self.cursor = (0, 0);
-        self.blinking_cursor = (0, self.left_margin);
+        //self.blinking_cursor = (0, self.left_margin);
     }
 }

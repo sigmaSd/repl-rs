@@ -16,6 +16,10 @@ You can use arrow keys to cycle through commands history
 
 **Ctrl-c** to exit
 
+**Page-Up** to scroll up
+
+**Page-Down** to scroll down
+
 ## Showcase
 <img src="./repl-rs.gif" width="80%" height="60%">
 

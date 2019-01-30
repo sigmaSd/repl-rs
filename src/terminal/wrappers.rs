@@ -15,7 +15,9 @@ impl Terminal {
         self.clear();
         self.history.reset();
         self.reset_cursors();
+        self.blinking_cursor.1 = self.left_margin;
         self.terminal_screen.clear();
+        self.screen_cursor = (0, 0);
         if !msg.is_empty() {
             self.writeln(msg);
         }

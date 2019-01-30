@@ -24,6 +24,7 @@ pub struct Terminal {
     blinking_cursor: (usize, usize),
     terminal_screen: Vec<(String, Color)>,
     left_margin: usize,
+    screen_cursor: (usize, usize),
 }
 impl Terminal {
     pub fn new() -> Self {
@@ -36,6 +37,7 @@ impl Terminal {
             cargo_cmds: Default::default(),
             terminal_screen: Vec::new(),
             left_margin: 8,
+            screen_cursor: (0, 0),
         };
         terminal.term.show_cursor(true).unwrap();
         terminal
@@ -77,6 +79,8 @@ impl Terminal {
                 Event::Key(Key::Enter) => {
                     self.handle_enter_key(&mut repl);
                 }
+                Event::Key(Key::PageUp) => self.scroll_up(),
+                Event::Key(Key::PageDown) => self.scroll_down(),
                 Event::Key(Key::Backspace) => {
                     self.back_space();
                 }

@@ -1,7 +1,7 @@
 pub struct History {
     pub buffer_vec: Vec<String>,
     pub line_idx: Vec<usize>,
-    cursor: usize,
+    pub cursor: usize,
     empty: String,
 }
 impl Default for History {
@@ -26,13 +26,20 @@ impl History {
             .clone()
     }
     pub fn up(&mut self) -> String {
+        let res = self
+            .buffer_vec
+            .get(self.cursor)
+            .unwrap_or(&self.empty)
+            .clone();
         if self.cursor >= 1 {
             self.cursor -= 1;
         }
-        self.buffer_vec
-            .get(self.cursor)
-            .unwrap_or(&self.empty)
-            .clone()
+        res
+    }
+    pub fn go_to_last(&mut self) {
+        if !self.buffer_vec.is_empty() {
+            self.cursor = self.buffer_vec.len() - 1;
+        }
     }
     pub fn push(&mut self, buffer: String) {
         self.buffer_vec.push(buffer);
