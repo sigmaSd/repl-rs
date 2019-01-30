@@ -1,7 +1,7 @@
 pub struct History {
     pub buffer_vec: Vec<String>,
     pub line_idx: Vec<usize>,
-    pub cursor: usize,
+    cursor: usize,
     empty: String,
 }
 impl Default for History {
