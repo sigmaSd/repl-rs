@@ -4,6 +4,8 @@ use crate::eval::eval;
 use crate::repl::Repl;
 use crate::terminal::Terminal;
 
+use tuikit::attr::Color;
+
 impl Terminal {
     pub fn parse_first_order(&mut self, mut repl: &mut Repl) -> Kind {
         let cmd = match self.buffer.as_str() {
@@ -27,11 +29,27 @@ impl Terminal {
                 Kind::Cmd
             }
             KeyWords::Add => {
-                self.cargo_cmds
+                let mut add_cmd = self
+                    .cargo_cmds
                     .cargo_add(&self.buffer)
                     .expect("Error while trying to add dependency");
+
+                self.writeln("");
+
+                while let Ok(None) = add_cmd.try_wait() {
+                    self.write(" Adding dep [\\]", Color::LIGHT_RED);
+                    self.write(" Adding dep [|]", Color::LIGHT_RED);
+                    self.write(" Adding dep [/]", Color::LIGHT_RED);
+                    self.write(" Adding dep [-]", Color::LIGHT_RED);
+                    self.write(" Adding dep [\\]", Color::LIGHT_RED);
+                    self.write(" Adding dep [|]", Color::LIGHT_RED);
+                    self.write(" Adding dep [/]", Color::LIGHT_RED);
+                    self.write(" Adding dep [-]", Color::LIGHT_RED);
+                }
+
                 self.writeln("");
                 self.buffer.clear();
+                self.reset_blinking_cursor_col();
                 self.write_input();
                 Kind::Cmd
             }

@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, Command};
 
 #[derive(Clone)]
 pub struct CargoCmds {
@@ -33,6 +33,7 @@ impl Default for CargoCmds {
 }
 impl CargoCmds {
     pub fn cargo_new(&self) -> Result<(), io::Error> {
+        self.clean_toml();
         if !Path::new(&self.rust_repl_playground_dir).exists() {
             Command::new("cargo")
                 .current_dir(&*self.tmp_dir)
@@ -61,18 +62,24 @@ impl CargoCmds {
         }
     }
 
-    pub fn cargo_add(&self, add_dep: &str) -> Result<(), io::Error> {
+    pub fn cargo_add(&self, add_dep: &str) -> Result<Child, io::Error> {
         let add_dep: Vec<&str> = add_dep.split(' ').collect();
         if add_dep.len() < 2 {
+            //TODO: Better fix this
             println!("missing dependency for cargo add cmd");
-            return Ok(());
+            return Err(io::Error::from_raw_os_error(1));
         }
+
         Command::new("cargo")
             .current_dir(&*self.rust_repl_playground_dir)
             .args(&add_dep)
             .spawn()?
             .wait()?;
-        Ok(())
+
+        Ok(Command::new("cargo")
+            .current_dir(&*self.rust_repl_playground_dir)
+            .arg("build")
+            .spawn()?)
     }
 
     fn cargo_build(&self) -> Result<(), io::Error> {
@@ -82,5 +89,41 @@ impl CargoCmds {
             .spawn()?
             .wait()?;
         Ok(())
+    }
+
+    fn clean_toml(&self) {
+        use std::fs::File;
+        use std::io::Read;
+
+        let mut clean = String::new();
+
+        let toml_file = {
+            let mut f = self.rust_repl_playground_dir.clone();
+            f.push("Cargo.toml");
+            f
+        };
+
+        if !Path::exists(&toml_file) {
+            return;
+        }
+
+        let mut toml_read = File::open(&toml_file).unwrap();
+
+        let toml_contents = {
+            let mut c = String::new();
+            toml_read.read_to_string(&mut c).unwrap();
+            c
+        };
+
+        for line in toml_contents.lines() {
+            clean.push_str(line);
+            if line.contains("[dependencies]") {
+                break;
+            }
+            clean.push('\n')
+        }
+
+        let mut toml_write = File::create(&toml_file).unwrap();
+        write!(toml_write, "{}", clean).unwrap();
     }
 }
