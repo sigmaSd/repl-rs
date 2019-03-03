@@ -90,10 +90,10 @@ impl Terminal {
                     //self.write(&self.terminal_screen.join(""),Color::default());
                     //self.rewrite();
                 }
-                Event::Key(Key::Ctrl('L')) => {
+                Event::Key(Key::Ctrl('l')) => {
                     self.custom_clear("");
                 }
-                Event::Key(Key::Ctrl('C')) => {
+                Event::Key(Key::Ctrl('c')) => {
                     self.exit();
                 }
                 _ => {
