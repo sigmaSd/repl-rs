@@ -1,6 +1,11 @@
 # repl-rs
 Rust repl
 
+## News
+Currently all effort are directed to the new repl [IRust](https://github.com/sigmaSd/IRust)
+
+The major advantage is cross platform support
+
 ## Keywords / Tips & Tricks
 **reset** => reset repl
 
